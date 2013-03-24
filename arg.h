@@ -37,5 +37,6 @@ extern char *argv0;
 #define EARGF(x)	((argv[1] == NULL)? ((x), abort(), (char *)0) :\
 			(argc--, argv++, argv[0]))
 
+
 #endif
 

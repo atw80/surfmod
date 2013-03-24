@@ -24,81 +24,47 @@ static Bool enablescripts = TRUE;
 static Bool enableinspector = TRUE;
 static Bool loadimages = TRUE;
 static Bool hidebackground  = FALSE;
+#define DOWNLOAD(d, r) { .v = (char *[]){ "surfdownload", d, useragent, r, NULL }}
 
-#define SETPROP(p, q) { \
-	.v = (char *[]){ "/bin/sh", "-c", \
-		"prop=\"`xprop -id $2 $0 | cut -d '\"' -f 2 | dmenu`\" &&" \
-		"xprop -id $2 -f $1 8s -set $1 \"$prop\"", \
-		p, q, winid, NULL \
-	} \
-}
-#define SETURI(p)       { .v = (char *[]){ "/bin/sh", "-c", \
-	"prop=\"`surfhistory`\" && xprop -id $1 -f $0 8s -set $0 \"$prop\"", \
-	p, winid, NULL } }
+#define SETPROP(scr, p) { .v = (char *[]){ "/bin/sh", "-c", \
+	"prop=`$1` && xprop -id $2 -f $0 8s -set $0 \"$prop\"", \
+	p, scr, winid, NULL }}
 
+#define HOMEPAGE "localhost/tb"
 
-/* DOWNLOAD(URI, referer) */
-#define DOWNLOAD(d, r) { \
-	.v = (char *[]){ "surfdownload", d, useragent, r, NULL }}
-/*	.v = (char *[]){ "/bin/sh", "-c", \
-		"xterm -e /bin/sh -c \"curl -J -O --user-agent '$1'" \
-		" --referer '$2'" \
-		" -b ~/.surf/cookies.txt -c ~/.surf/cookies.txt '$0';" \
-		" sleep 5;\"", \
-		d, useragent, r, NULL \ 
-	} \
-} */
-
-#define HOMEPAGE "en.wikipedia.org"
-#define MODKEY GDK_CONTROL_MASK
 
 /* hotkeys */
 /*
  * If you use anything else but MODKEY and GDK_SHIFT_MASK, don't forget to
  * edit the CLEANMASK() macro.
  */
-static Key keys[] = {
-    /* modifier	            keyval      function    arg             Focus */
-    { MODKEY|GDK_SHIFT_MASK,GDK_r,      reload,     { .b = TRUE } },
-    { MODKEY,               GDK_r,      reload,     { .b = FALSE } },
-    { MODKEY|GDK_SHIFT_MASK,GDK_p,      print,      { 0 } },
+//Keybinds in the normal view binds
+static Key normalKeys[] = {
+	{'j', scroll_v, { .i = 1}, ModeNormal},
+	{'k', scroll_v, { .i = -1}, ModeNormal},
+	{'h', scroll_h, { .i = -1}, ModeNormal},
+	{'l', scroll_h, { .i = 1}, ModeNormal},
+	
+	{'r', reload, { .b = FALSE}, ModeNormal},
+	{'R', reload, { .b = TRUE}, ModeNormal},
+	{'s', stop, { 0 }, ModeNormal},
 
-    { MODKEY,               GDK_p,      clipboard,  { .b = TRUE } },
-    { MODKEY,               GDK_y,      clipboard,  { .b = FALSE } },
+	{'1', zoom, { .i = -1}, ModeNormal},
+	{'2', zoom, { .i = 1}, ModeNormal},
+	{'3', zoom, { .i = 0}, ModeNormal},
 
-    { MODKEY|GDK_SHIFT_MASK,GDK_j,      zoom,       { .i = -1 } },
-    { MODKEY|GDK_SHIFT_MASK,GDK_k,      zoom,       { .i = +1 } },
-    { MODKEY|GDK_SHIFT_MASK,GDK_q,      zoom,       { .i = 0  } },
-    { MODKEY,               GDK_minus,  zoom,       { .i = -1 } },
-    { MODKEY,               GDK_plus,   zoom,       { .i = +1 } },
+	{'m', navigate, { .i = 1}, ModeNormal},
+	{'b', navigate, { .i = -1}, ModeNormal},
 
-    { MODKEY,               GDK_l,      navigate,   { .i = +1 } },
-    { MODKEY,               GDK_h,      navigate,   { .i = -1 } },
+	{'o', spawn, SETPROP("surfnavigate", "_SURF_GO"), ModeNormal},
 
-    { MODKEY,               GDK_j,           scroll_v,   { .i = +1 } },
-    { MODKEY,               GDK_k,           scroll_v,   { .i = -1 } },
-    { MODKEY,               GDK_b,           scroll_v,   { .i = -10000 } },
-    { MODKEY,               GDK_space,       scroll_v,   { .i = +10000 } },
-    { MODKEY,               GDK_i,           scroll_h,   { .i = +1 } },
-    { MODKEY,               GDK_u,           scroll_h,   { .i = -1 } },
+	{'/', spawn, SETPROP("surffind", "_SURF_FIND"), ModeNormal},
+	{'n', find, { .b = TRUE } , ModeNormal},
+	{'N', find, { .b = FALSE} , ModeNormal},
 
-    { MODKEY,               GDK_Return, spawn,      SETURI("_SURF_GO") },
-
-    { 0,                    GDK_F11,    fullscreen, { 0 } },
-    { 0,                    GDK_Escape, stop,       { 0 } },
-    { MODKEY,               GDK_o,      source,     { 0 } },
-    { MODKEY|GDK_SHIFT_MASK,GDK_o,      inspector,  { 0 } },
-
-    { MODKEY,               GDK_g,      spawn,      SETPROP("_SURF_URI", "_SURF_GO") },
-    { MODKEY,               GDK_f,      spawn,      SETPROP("_SURF_FIND", "_SURF_FIND") },
-    { MODKEY,               GDK_slash,  spawn,      SETPROP("_SURF_FIND", "_SURF_FIND") },
-
-    { MODKEY,               GDK_n,      find,       { .b = TRUE } },
-    { MODKEY|GDK_SHIFT_MASK,GDK_n,      find,       { .b = FALSE } },
-
-    { MODKEY|GDK_SHIFT_MASK,GDK_c,      toggle,     { .v = "enable-caret-browsing" } },
-    { MODKEY|GDK_SHIFT_MASK,GDK_i,      toggle,     { .v = "auto-load-images" } },
-    { MODKEY|GDK_SHIFT_MASK,GDK_s,      toggle,     { .v = "enable-scripts" } },
-    { MODKEY|GDK_SHIFT_MASK,GDK_v,      toggle,     { .v = "enable-plugins" } },
+	{'f', eval, { .v = "follow();" }, ModeScript},
 };
 
+static Key scriptKeys[] = {
+	{'f', eval, { .v = "unfollow();" }, ModeNormal},
+};
